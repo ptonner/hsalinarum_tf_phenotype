@@ -1,7 +1,8 @@
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import numpy as np
 import scipy
-from scipy.cluster.hierarchy import linkage, leaves_list
+from scipy.cluster.hierarchy import linkage, leaves_list, dendrogram
 
 def plot_mvn(mu,var,x=None,c='b',alpha=.2):
     if x is None:
@@ -9,11 +10,11 @@ def plot_mvn(mu,var,x=None,c='b',alpha=.2):
     plt.plot(x,mu,c=c)
     plt.fill_between(x,mu-np.sqrt(var)*2,mu+np.sqrt(var)*2,color=c,alpha=alpha)
 
-def plot_delta(x,deltas,mean=True,probability=False,cluster=False,cluster_kwargs={}):
+def plot_delta(x,deltas,mean=True,probability=False,cluster=False,plot_cluster=False,cluster_kwargs={},ytick_filter=lambda x: x):
     p = len(deltas.keys())
     n = x.shape[0]
     a = np.zeros((p,n))
-    yticks = deltas.keys()
+    yticks = [ytick_filter(k) for k in deltas.keys()]
 
     for i,k in enumerate(deltas.keys()):
         mu,var = deltas[k]
@@ -29,6 +30,10 @@ def plot_delta(x,deltas,mean=True,probability=False,cluster=False,cluster_kwargs
         ind = leaves_list(l)
         a = a[ind,:]
         yticks = [yticks[j] for j in ind]
+        
+        if plot_cluster:
+            ax = plt.subplot2grid((1,6),(0,0),colspan=1,rowspan=1)
+            dendrogram(l,no_labels=True,orientation='left',ax=ax)
 
     if mean:
         lim = np.max(np.abs(a))
@@ -38,13 +43,27 @@ def plot_delta(x,deltas,mean=True,probability=False,cluster=False,cluster_kwargs
         vmin = 0
         vmax = 1
 
-    plt.imshow(a,cmap="RdBu",interpolation="none",vmin=vmin,vmax=vmax,origin='lower')
+    if plot_cluster:
+        ax = plt.subplot2grid((1,6),(0,1),colspan=4,rowspan=1)
+    else:
+        ax = plt.subplot2grid((1,5),(0,0),colspan=4,rowspan=1)
+        
+    plt.imshow(a,cmap="RdBu",interpolation="none",vmin=vmin,vmax=vmax,origin='lower',aspect="auto")
     plt.yticks(range(p),yticks)
-    # i = plt.xticks()[0]
     i = np.arange(0,n,1.*n/5)
     plt.xticks(i,[x[j].round(2) for j in i])
-    plt.colorbar()
-
+    
+    if plot_cluster:
+        if probability:
+            cbarAx,kwargs = mpl.colorbar.make_axes(ax)
+            cbar = mpl.colorbar.ColorbarBase(cbarAx,cmap='RdBu',ticks=[0,.5,1],**kwargs)
+            cbar.ax.set_yticklabels(['p(less\n than parent)\n>97.5%', 'no difference', 'p(greater\n than parent)\n>97.5%'],fontsize=15)
+        else:
+        	plt.colorbar()
+    else:
+        plt.colorbar()
+    
+    
 def plot_model(x,gp,strain):
     time = np.linspace(0,43)
 
