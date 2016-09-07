@@ -1,3 +1,6 @@
+import pandas as pd
+import numpy as np
+
 def loadData(strains=[],standard=False,paraquat=False,osmotic=False,heatshock=False,mean=False,scaleX=True,batchEffects=False,nanRemove=True,plates=None):
 	import os
 	datadir = 'data'
@@ -97,12 +100,11 @@ def loadData(strains=[],standard=False,paraquat=False,osmotic=False,heatshock=Fa
 
 
 if __name__ == "__main__":
-	import argparse, sys, os
-	#sys.path.append("../..")
-	import gpfanova
+	import argparse, sys, os, gpfanova, logging
 
+	logging.basicConfig(filename='runFANOVA.log',level=logging.DEBUG)
 
-	parser = argparse.ArgumentParser(description='Run analysis of Cokol et al. data.')
+	parser = argparse.ArgumentParser(description='Run analysis of H. salinarum TF data.')
 	parser.add_argument('strains',metavar=('s'), type=str, nargs='*',
 	                  help='strains to build model for')
 	parser.add_argument('-n', dest='n_samples', action='store',default=10, type=int,
@@ -174,7 +176,7 @@ if __name__ == "__main__":
 		# resultsDir = os.path.abspath(os.path.join(os.path.abspath(__file__),'results'))
 		resultsDir = 'results'
 
-		s = ''
+		s = 'posteriorSamples'
 		if args.coprCompliment:
 			s += "_coprCompliment"
 		if args.interactions:
@@ -211,7 +213,8 @@ if __name__ == "__main__":
 		nrestarts = 0
 		while nrestarts < 10:
 			try:
-				m.sample(args.n_samples,args.thin)
+				m.sample(args.n_samples,args.thin,verbose=True)
+				break
 			except Exception,e:
 				m.save(os.path.join(resultsDir,'%s.csv'%(s)))
 				nrestarts+=1
@@ -220,5 +223,7 @@ if __name__ == "__main__":
 				m.parameter_cache = m.parameter_history.iloc[-1,:]
 
 				print nrestarts, e
+
+		print m.parameter_history
 
 		m.save(os.path.join(resultsDir,'%s.csv'%(s)))
