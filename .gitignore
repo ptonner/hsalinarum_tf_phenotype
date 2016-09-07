@@ -2,5 +2,6 @@ bin/
 lib/
 local/
 include/
+pip-selfcheck.json
 *.pickle
 *.pyc
