@@ -2,6 +2,8 @@ bin/
 lib/
 local/
 include/
+figures/
+.ipynb_checkpoints/
 pip-selfcheck.json
 *.pickle
 *.pyc
