@@ -1,6 +1,8 @@
+## Setup
 
+    jupyter nbconvert --execute --inplace notebooks/dataSetup.ipynb
 
-# Running FANOVA
+## Running FANOVA
 
 FANOVA was run using the runFANOVA.py script.
 
