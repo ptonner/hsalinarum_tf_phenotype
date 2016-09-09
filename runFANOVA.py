@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-def loadData(strains=[],standard=False,paraquat=False,osmotic=False,heatshock=False,mean=False,scaleX=True,batchEffects=False,nanRemove=True,plates=None):
+def loadData(strains=[],standard=False,paraquat=False,osmotic=False,heatshock=False,peroxide=False,mean=False,scaleX=True,batchEffects=False,nanRemove=True,plates=None):
 	import os
 	datadir = 'data'
 	# print datadir
@@ -15,7 +15,7 @@ def loadData(strains=[],standard=False,paraquat=False,osmotic=False,heatshock=Fa
 	if not plates is None:
 		data = data.loc[data.Experiment.isin(plates)]
 
-	conditions = ['Experiment','Well','Strain','standard','paraquat','osmotic','heatshock']
+	conditions = ['Experiment','Well','Strain','standard','paraquat','osmotic','heatshock','peroxide']
 	temp = data.set_index(conditions+['time'])
 	temp = temp[['OD']]
 
@@ -45,6 +45,9 @@ def loadData(strains=[],standard=False,paraquat=False,osmotic=False,heatshock=Fa
 	if heatshock:
 		selectCondition = selectCondition | (pivot.index.get_level_values('heatshock')==1)
 		effects+=['heatshock']
+	if peroxide:
+		selectCondition = selectCondition | (pivot.index.get_level_values('peroxide')==1)
+		effects+=['peroxide']
 	select = selectStrain & selectCondition
 	pivot = pivot.loc[select,:]
 
@@ -129,6 +132,8 @@ if __name__ == "__main__":
 	                   help='analyze osmotic data')
 	parser.add_argument('-e', dest='heatshock', action='store_true',
 	                   help='analyze heatshock data')
+	parser.add_argument('-x', dest='peroxide', action='store_true',
+	                   help='analyze peroxide data')
 	parser.add_argument('--helmertConvert', dest='helmertConvert', action='store_true',
 	                   help='helmertConvert toggle for gpfanova')
 	parser.add_argument('--scaleX', dest='scaleX', action='store_true',
@@ -169,7 +174,8 @@ if __name__ == "__main__":
 			effect = neweffects[effect[:,0],:]
 
 		else:
-			x,y,effect,_ = loadData(args.strains,standard=args.standard,paraquat=args.paraquat,osmotic=args.osmotic,heatshock=args.heatshock,mean=args.mean,scaleX=args.scaleX,batchEffects=args.batchEffects,nanRemove=True)
+			x,y,effect,_ = loadData(args.strains,standard=args.standard,paraquat=args.paraquat,osmotic=args.osmotic,heatshock=args.heatshock,peroxide=args.peroxide,
+								mean=args.mean,scaleX=args.scaleX,batchEffects=args.batchEffects,nanRemove=True)
 
 		m = gpfanova.fanova.FANOVA(x,y,effect,interactions=args.interactions,helmertConvert=args.helmertConvert)
 
@@ -203,6 +209,9 @@ if __name__ == "__main__":
 		if args.heatshock:
 			s += temp + "heatshock"
 			temp = '-'
+		if args.peroxide:
+			s += temp + "peroxide"
+			temp = '-'
 
 		if len(args.strains)>0:
 			s += '_(%s)'%",".join(args.strains)
@@ -223,7 +232,5 @@ if __name__ == "__main__":
 				m.parameter_cache = m.parameter_history.iloc[-1,:]
 
 				print nrestarts, e
-
-		print m.parameter_history
 
 		m.save(os.path.join(resultsDir,'%s.csv'%(s)))
