@@ -1,16 +1,16 @@
 import pandas as pd
 import numpy as np
 
-def loadData(strains=[],standard=False,paraquat=False,osmotic=False,heatshock=False,peroxide=False,mean=False,scaleX=True,batchEffects=False,nanRemove=True,plates=None):
+def loadData(strains=[],standard=False,paraquat=False,osmotic=False,heatshock=False,peroxide=False,mean=False,scaleX=True,batchEffects=False,nanRemove=True,plates=None,otherEffects = []):
 	import os
 	datadir = 'data'
 	# print datadir
 	# print os.path.join(datadir,"hsalinarum/tidy_normalize_log_st0.csv")
 
-	if batchEffects:
-		data = pd.read_csv(os.path.join(datadir,"tidy_normalize_log_st0_batchEffects.csv"),index_col=None)
-	else:
-		data = pd.read_csv(os.path.join(datadir,"tidy_normalize_log_st0.csv"),index_col=None)
+	# if batchEffects:
+	# 	data = pd.read_csv(os.path.join(datadir,"tidy_normalize_log_st0_batchEffects.csv"),index_col=None)
+	# else:
+	data = pd.read_csv(os.path.join(datadir,"tidy_normalize_log_st0.csv"),index_col=None)
 
 	if not plates is None:
 		data = data.loc[data.Experiment.isin(plates)]
@@ -30,7 +30,7 @@ def loadData(strains=[],standard=False,paraquat=False,osmotic=False,heatshock=Fa
 	pivot.columns = [t for s,t in pivot.columns.values]
 
 	effects = []
-	otherEffects = []
+
 	selectStrain = pivot.index.get_level_values('Strain').isin(strains)
 	selectCondition = pd.Series([False]*pivot.shape[0],index=pivot.index)
 	if standard:
@@ -75,11 +75,18 @@ def loadData(strains=[],standard=False,paraquat=False,osmotic=False,heatshock=Fa
 	e = np.where(e!=0)[1]
 
 	if len(otherEffects)>0:
-		e2 = []
+		e = np.column_stack((fact,e))
+		# e2 = np.zeros(pivot.shape[0])
 		for eff in otherEffects:
-			e2.append(pd.factorize(pivot.index.get_level_values(eff))[0])
-		e2 = np.array(e2).T
-		e = np.array([fact,e,e2]).T
+			# e2.append(pd.factorize(pivot.index.get_level_values(eff))[0])
+			# e2 = np.column_stack((e2,pd.factorize(pivot.index.get_level_values(eff))[0]))
+			e = np.column_stack((e,pd.factorize(pivot.index.get_level_values(eff))[0]))
+
+		# e = e.T
+		# e2 = e2[:,1:]
+		# print fact,e,e2
+		# e2 = np.array(e2).T
+		# e = np.column_stack((fact,e,e2)).T
 	else:
 		if len(effects) <= 1:
 			e = np.array(fact)[:,None]
@@ -174,10 +181,20 @@ if __name__ == "__main__":
 			effect = neweffects[effect[:,0],:]
 
 		else:
-			x,y,effect,_ = loadData(args.strains,standard=args.standard,paraquat=args.paraquat,osmotic=args.osmotic,heatshock=args.heatshock,peroxide=args.peroxide,
-								mean=args.mean,scaleX=args.scaleX,batchEffects=args.batchEffects,nanRemove=True)
+			if args.batchEffects:
 
-		m = gpfanova.fanova.FANOVA(x,y,effect,interactions=args.interactions,helmertConvert=args.helmertConvert)
+				x,y,effect,_ = loadData(args.strains,standard=args.standard,paraquat=args.paraquat,osmotic=args.osmotic,heatshock=args.heatshock,peroxide=args.peroxide,
+									mean=args.mean,scaleX=args.scaleX,nanRemove=True,otherEffects=['Experiment'])
+
+				if effect.shape[1]>2:
+					m = gpfanova.fanova.FANOVA(x,y,effect,interactions=[(0,1)],helmertConvert=args.helmertConvert)
+				else:
+					m = gpfanova.fanova.FANOVA(x,y,effect,interactions=False,helmertConvert=args.helmertConvert)
+
+			else:
+				x,y,effect,_ = loadData(args.strains,standard=args.standard,paraquat=args.paraquat,osmotic=args.osmotic,heatshock=args.heatshock,peroxide=args.peroxide,
+									mean=args.mean,scaleX=args.scaleX,nanRemove=True)
+				m = gpfanova.fanova.FANOVA(x,y,effect,interactions=args.interactions,helmertConvert=args.helmertConvert)
 
 		# resultsDir = os.path.abspath(os.path.join(os.path.abspath(__file__),'results'))
 		resultsDir = 'results'
