@@ -1,3 +1,3 @@
 
 
-tar -cvjf hsal_tf_library.tar.bz README.txt figures
+tar -cvjf hsal_tf_library.tar.bz README.md figures
